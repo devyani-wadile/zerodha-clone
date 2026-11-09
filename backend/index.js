@@ -603,12 +603,12 @@ app.post("/login", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    res.cookie("token", token, cookieOptions);
-
     res.status(200).json({
       message: "Login successful",
       username: user.username,
+      token,
     });
+
   } catch (error) {
     console.error("Login error:", error);
 

@@ -5,6 +5,10 @@ import axios from "axios";
 import GeneralContext from "./GeneralContext";
 import "./BuyActionWindow.css";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://zerodha-clone-cu3e.onrender.com";
+
 const BuyActionWindow = ({ uid, price, mode = "BUY" }) => {
   const generalContext = useContext(GeneralContext);
 
@@ -36,8 +40,10 @@ const BuyActionWindow = ({ uid, price, mode = "BUY" }) => {
     try {
       setLoading(true);
 
+      const token = sessionStorage.getItem("authToken");
+
       const response = await axios.post(
-        "http://localhost:3002/newOrder",
+        `${API_URL}/newOrder`,
         {
           name: uid,
           qty: quantity,
@@ -45,12 +51,13 @@ const BuyActionWindow = ({ uid, price, mode = "BUY" }) => {
           mode: mode,
         },
         {
-          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
       alert(response.data.message);
-
       generalContext.closeBuyWindow();
 
     } catch (error) {

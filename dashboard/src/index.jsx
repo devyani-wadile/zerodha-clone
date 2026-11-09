@@ -12,12 +12,13 @@ import "./index.css";
 import Home from "./components/Home";
 
 const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3002";
+  import.meta.env.VITE_API_URL ||
+  "https://zerodha-clone-cu3e.onrender.com";
 
 const FRONTEND_URL =
-  import.meta.env.VITE_FRONTEND_URL || "https://zerodha-clone-eight-sable.vercel.app";
+  import.meta.env.VITE_FRONTEND_URL ||
+  "https://zerodha-clone-eight-sable.vercel.app";
 
-// Protect dashboard from unauthenticated access
 const ProtectedDashboard = ({ children }) => {
   const [isChecking, setIsChecking] = useState(true);
 
@@ -26,14 +27,43 @@ const ProtectedDashboard = ({ children }) => {
 
     const verifyUser = async () => {
       try {
+        const params = new URLSearchParams(window.location.search);
+        const tokenFromUrl = params.get("token");
+
+        if (tokenFromUrl) {
+          sessionStorage.setItem("authToken", tokenFromUrl);
+
+          // Remove token from browser address bar.
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+          );
+        }
+
+        const token = sessionStorage.getItem("authToken");
+
+        if (!token) {
+          throw new Error("Authentication token missing");
+        }
+
         await axios.get(`${API_URL}/verify-token`, {
-          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         if (isActive) {
           setIsChecking(false);
         }
       } catch (error) {
+        console.error(
+          "Authentication verification failed:",
+          error.response?.data || error.message
+        );
+
+        sessionStorage.removeItem("authToken");
+
         if (isActive) {
           window.location.replace(`${FRONTEND_URL}/login`);
         }

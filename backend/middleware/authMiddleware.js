@@ -2,8 +2,16 @@
 const jwt = require("jsonwebtoken");
 
 const authMiddleware = (req, res, next) => {
-  // Read JWT from HTTP-only cookie
-  const token = req.cookies?.token;
+  // First check the Authorization header.
+  const authHeader = req.headers.authorization;
+
+  const bearerToken =
+    authHeader && authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
+
+  // Keep cookie support for compatibility.
+  const token = bearerToken || req.cookies?.token;
 
   if (!token) {
     return res.status(401).json({
@@ -12,15 +20,12 @@ const authMiddleware = (req, res, next) => {
   }
 
   try {
-    // Verify JWT using secret key
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET
     );
 
-    // Attach authenticated user information
     req.user = decoded;
-
     next();
   } catch (error) {
     return res.status(403).json({

@@ -3,19 +3,30 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://zerodha-clone-cu3e.onrender.com";
+
+const FRONTEND_URL =
+  import.meta.env.VITE_FRONTEND_URL ||
+  "https://zerodha-clone-eight-sable.vercel.app";
+
 const Menu = () => {
   const [selectedMenu, setSelectedMenu] = useState(0);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [username, setUsername] = useState("");
 
-  // Fetch logged-in user's details
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        const token = sessionStorage.getItem("authToken");
+
         const response = await axios.get(
-          "http://localhost:3002/verify-token",
+          `${API_URL}/verify-token`,
           {
-            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
 
@@ -28,7 +39,6 @@ const Menu = () => {
     fetchUser();
   }, []);
 
-  // Generate initials from username
   const getInitials = (name) => {
     if (!name) return "U";
 
@@ -53,18 +63,22 @@ const Menu = () => {
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
 
-  // Logout user
   const handleLogout = async () => {
     try {
+      const token = sessionStorage.getItem("authToken");
+
       await axios.post(
-        "http://localhost:3002/logout",
+        `${API_URL}/logout`,
         {},
         {
-          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
-      window.location.href = "http://localhost:5173/login";
+      sessionStorage.removeItem("authToken");
+      window.location.href = `${FRONTEND_URL}/login`;
     } catch (error) {
       console.error("Logout failed:", error);
       alert("Unable to logout. Please try again.");

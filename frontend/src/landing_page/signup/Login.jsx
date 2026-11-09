@@ -3,9 +3,11 @@ import React, { useState } from "react";
 import axios from "axios";
 
 const API_URL =
-  import.meta.env.VITE_API_URL || "https://zerodha-clone-cu3e.onrender.com";
+  import.meta.env.VITE_API_URL ||
+  "https://zerodha-clone-cu3e.onrender.com";
 
-const DASHBOARD_URL = "https://zerodha-clone-jsrg.vercel.app";
+const DASHBOARD_URL =
+  "https://zerodha-clone-jsrg.vercel.app";
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -31,18 +33,29 @@ function Login() {
     try {
       const response = await axios.post(
         `${API_URL}/login`,
-        formData,
-        { withCredentials: true }
+        formData
       );
 
-      setMessage(response.data.message || "Login successful!");
+      const token = response.data.token;
 
-      window.location.href = DASHBOARD_URL;
+      if (!token) {
+        throw new Error("Authentication token not received");
+      }
+
+      // Temporary token transfer to dashboard.
+      window.location.href =
+        `${DASHBOARD_URL}?token=${encodeURIComponent(token)}`;
+
     } catch (error) {
-      console.error("Login error:", error.response?.data || error);
+      console.error(
+        "Login error:",
+        error.response?.data || error
+      );
 
       setMessage(
-        error.response?.data?.message || "Login failed. Please try again."
+        error.response?.data?.message ||
+        error.message ||
+        "Login failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -90,7 +103,9 @@ function Login() {
               </button>
             </form>
 
-            {message && <p className="text-center mt-3">{message}</p>}
+            {message && (
+              <p className="text-center mt-3">{message}</p>
+            )}
           </div>
         </div>
       </div>

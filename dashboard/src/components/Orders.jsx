@@ -3,6 +3,10 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://zerodha-clone-cu3e.onrender.com";
+
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,10 +15,14 @@ const Orders = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
+        const token = sessionStorage.getItem("authToken");
+
         const response = await axios.get(
-          "http://localhost:3002/allOrders",
+          `${API_URL}/allOrders`,
           {
-            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
 
@@ -67,7 +75,9 @@ const Orders = () => {
                 <tr key={order._id}>
                   <td>{order.name}</td>
                   <td>{order.qty}</td>
-                  <td>₹{Number(order.price).toLocaleString("en-IN")}</td>
+                  <td>
+                    ₹{Number(order.price).toLocaleString("en-IN")}
+                  </td>
                   <td
                     className={
                       order.mode === "BUY" ? "buy" : "sell"

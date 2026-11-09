@@ -3,6 +3,10 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { VerticalGraph } from "./VerticalGraph";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://zerodha-clone-cu3e.onrender.com";
+
 const Holdings = () => {
   const [allHoldings, setAllHoldings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,10 +15,14 @@ const Holdings = () => {
   useEffect(() => {
     const fetchHoldings = async () => {
       try {
+        const token = sessionStorage.getItem("authToken");
+
         const response = await axios.get(
-          "http://localhost:3002/allHoldings",
+          `${API_URL}/allHoldings`,
           {
-            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
 
@@ -43,7 +51,6 @@ const Holdings = () => {
     ],
   };
 
-  // Calculate portfolio values dynamically
   const totalInvestment = allHoldings.reduce(
     (total, stock) => total + stock.avg * stock.qty,
     0

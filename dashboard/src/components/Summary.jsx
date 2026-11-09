@@ -2,17 +2,24 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://zerodha-clone-cu3e.onrender.com";
+
 const Summary = () => {
   const [username, setUsername] = useState("");
 
-  // Fetch logged-in user's username from backend
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        const token = sessionStorage.getItem("authToken");
+
         const response = await axios.get(
-          "http://localhost:3002/verify-token",
+          `${API_URL}/verify-token`,
           {
-            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
 

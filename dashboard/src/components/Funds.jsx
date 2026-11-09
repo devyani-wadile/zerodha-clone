@@ -2,7 +2,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:3002";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://zerodha-clone-cu3e.onrender.com";
+
+const getAuthConfig = () => ({
+  headers: {
+    Authorization: `Bearer ${sessionStorage.getItem("authToken")}`,
+  },
+});
 
 const Funds = () => {
   const [funds, setFunds] = useState(null);
@@ -34,7 +42,7 @@ const Funds = () => {
     try {
       const response = await axios.get(
         `${API_URL}/allFunds`,
-        { withCredentials: true }
+        getAuthConfig()
       );
 
       setFunds(response.data);
@@ -52,7 +60,7 @@ const Funds = () => {
     try {
       const response = await axios.get(
         `${API_URL}/allFundsTransactions`,
-        { withCredentials: true }
+        getAuthConfig()
       );
 
       setTransactions(response.data);
@@ -124,7 +132,7 @@ const Funds = () => {
       const response = await axios.post(
         endpoint,
         { amount: numericAmount },
-        { withCredentials: true }
+        getAuthConfig()
       );
 
       setMessage(response.data.message);
@@ -175,7 +183,6 @@ const Funds = () => {
   return (
     <>
       {/* Fund Actions */}
-
       <div
         className="funds"
         style={{
@@ -218,7 +225,6 @@ const Funds = () => {
       </div>
 
       {/* Success Message */}
-
       {message && (
         <p
           style={{
@@ -232,7 +238,6 @@ const Funds = () => {
       )}
 
       {/* Error Message */}
-
       {error && (
         <p
           style={{
@@ -246,7 +251,6 @@ const Funds = () => {
       )}
 
       {/* Add Funds / Withdraw Form */}
-
       {transactionType && (
         <div
           style={{
@@ -341,7 +345,6 @@ const Funds = () => {
       )}
 
       {/* Equity Funds Details */}
-
       <div className="row">
         <div className="col">
           <span>
@@ -423,7 +426,6 @@ const Funds = () => {
       </div>
 
       {/* Transaction History */}
-
       <div
         style={{
           marginTop: "45px",
@@ -475,7 +477,6 @@ const Funds = () => {
         </div>
 
         {/* Transaction Filters */}
-
         <div
           style={{
             display: "flex",
@@ -516,7 +517,6 @@ const Funds = () => {
         </div>
 
         {/* Transaction Table */}
-
         {transactionsLoading ? (
           <p style={{ color: colors.muted, padding: "20px 0" }}>
             Loading transactions...

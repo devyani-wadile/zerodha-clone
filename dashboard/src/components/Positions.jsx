@@ -2,6 +2,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://zerodha-clone-cu3e.onrender.com";
+
 const Positions = () => {
   const [allPositions, setAllPositions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10,10 +14,14 @@ const Positions = () => {
   useEffect(() => {
     const fetchPositions = async () => {
       try {
+        const token = sessionStorage.getItem("authToken");
+
         const response = await axios.get(
-          "http://localhost:3002/allPositions",
+          `${API_URL}/allPositions`,
           {
-            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
 
