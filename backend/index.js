@@ -6,7 +6,6 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
@@ -30,10 +29,8 @@ const app = express();
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// Trust Render's reverse proxy
 app.set("trust proxy", 1);
 
-// Cookie configuration
 const cookieOptions = {
   httpOnly: true,
   secure: isProduction,
@@ -61,8 +58,8 @@ app.use(
 app.use(cookieParser());
 app.use(bodyParser.json());
 
+// ==================== HEALTH CHECK ====================
 
-// Health check
 app.get("/", (req, res) => {
   res.status(200).json({
     message: "Zerodha Clone API is running",
@@ -91,9 +88,36 @@ app.get("/allHoldings", authMiddleware, async (req, res) => {
 
 app.get("/allPositions", authMiddleware, async (req, res) => {
   try {
-    const allPositions = await PositionsModel.find({
+    let allPositions = await PositionsModel.find({
       userId: req.user.id,
     });
+
+    // Initialize positions from existing holdings if needed.
+    if (allPositions.length === 0) {
+      const holdings = await HoldingsModel.find({
+        userId: req.user.id,
+      });
+
+      if (holdings.length > 0) {
+        const positionData = holdings.map((holding) => ({
+          product: "CNC",
+          name: holding.name,
+          qty: holding.qty,
+          avg: holding.avg,
+          price: holding.price,
+          net: holding.net || "0.00%",
+          day: holding.day || "0.00%",
+          isLoss: holding.isLoss || false,
+          userId: req.user.id,
+        }));
+
+        await PositionsModel.insertMany(positionData);
+
+        allPositions = await PositionsModel.find({
+          userId: req.user.id,
+        });
+      }
+    }
 
     res.status(200).json(allPositions);
   } catch (error) {
@@ -183,7 +207,14 @@ app.post("/newOrder", authMiddleware, async (req, res) => {
         userId: req.user.id,
       }).session(session);
 
-      // BUY
+      const existingPosition = await PositionsModel.findOne({
+        name: stockName,
+        product: "CNC",
+        userId: req.user.id,
+      }).session(session);
+
+      // ==================== BUY ====================
+
       if (orderMode === "BUY") {
         if (funds.availableBalance < totalAmount) {
           const error = new Error(
@@ -199,6 +230,7 @@ app.post("/newOrder", authMiddleware, async (req, res) => {
 
         await funds.save({ session });
 
+        // Update holdings
         if (existingHolding) {
           const oldQuantity = existingHolding.qty;
           const newQuantity = oldQuantity + quantity;
@@ -227,12 +259,48 @@ app.post("/newOrder", authMiddleware, async (req, res) => {
 
           await newHolding.save({ session });
         }
+
+        // Update positions
+        if (existingPosition) {
+          const oldQuantity = existingPosition.qty;
+          const newQuantity = oldQuantity + quantity;
+
+          const newAverage =
+            (
+              existingPosition.avg * oldQuantity +
+              stockPrice * quantity
+            ) / newQuantity;
+
+          existingPosition.qty = newQuantity;
+          existingPosition.avg = Number(newAverage.toFixed(2));
+          existingPosition.price = stockPrice;
+          existingPosition.isLoss = false;
+
+          await existingPosition.save({ session });
+        } else {
+          const newPosition = new PositionsModel({
+            product: "CNC",
+            name: stockName,
+            qty: quantity,
+            avg: stockPrice,
+            price: stockPrice,
+            net: "0.00%",
+            day: "0.00%",
+            isLoss: false,
+            userId: req.user.id,
+          });
+
+          await newPosition.save({ session });
+        }
       }
 
-      // SELL
+      // ==================== SELL ====================
+
       if (orderMode === "SELL") {
         if (!existingHolding) {
-          const error = new Error("You do not own this stock.");
+          const error = new Error(
+            "You do not own this stock."
+          );
           error.statusCode = 400;
           throw error;
         }
@@ -248,6 +316,7 @@ app.post("/newOrder", authMiddleware, async (req, res) => {
         const remainingQuantity =
           existingHolding.qty - quantity;
 
+        // Update holdings
         if (remainingQuantity === 0) {
           await HoldingsModel.deleteOne({
             _id: existingHolding._id,
@@ -260,6 +329,24 @@ app.post("/newOrder", authMiddleware, async (req, res) => {
           await existingHolding.save({ session });
         }
 
+        // Update positions
+        if (existingPosition) {
+          const remainingPositionQuantity =
+            existingPosition.qty - quantity;
+
+          if (remainingPositionQuantity <= 0) {
+            await PositionsModel.deleteOne({
+              _id: existingPosition._id,
+              userId: req.user.id,
+            }).session(session);
+          } else {
+            existingPosition.qty = remainingPositionQuantity;
+            existingPosition.price = stockPrice;
+
+            await existingPosition.save({ session });
+          }
+        }
+
         funds.availableBalance = Number(
           (funds.availableBalance + totalAmount).toFixed(2)
         );
@@ -267,7 +354,8 @@ app.post("/newOrder", authMiddleware, async (req, res) => {
         await funds.save({ session });
       }
 
-      // SAVE ORDER
+      // ==================== SAVE ORDER ====================
+
       const newOrder = new OrdersModel({
         name: stockName,
         qty: quantity,
@@ -608,7 +696,6 @@ app.post("/login", async (req, res) => {
       username: user.username,
       token,
     });
-
   } catch (error) {
     console.error("Login error:", error);
 
