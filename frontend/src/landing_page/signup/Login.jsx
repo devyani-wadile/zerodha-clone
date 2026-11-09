@@ -5,8 +5,7 @@ import axios from "axios";
 const API_URL =
   import.meta.env.VITE_API_URL || "https://zerodha-clone-cu3e.onrender.com";
 
-const DASHBOARD_URL =
-  import.meta.env.VITE_DASHBOARD_URL || "http://localhost:5174";
+const DASHBOARD_URL = "https://zerodha-clone-jsrg.vercel.app";
 
 function Login() {
   const [formData, setFormData] = useState({
