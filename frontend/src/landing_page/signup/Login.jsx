@@ -1,5 +1,12 @@
+
 import React, { useState } from "react";
 import axios from "axios";
+
+const API_URL =
+  import.meta.env.VITE_API_URL || "https://zerodha-clone-cu3e.onrender.com";
+
+const DASHBOARD_URL =
+  import.meta.env.VITE_DASHBOARD_URL || "http://localhost:5174";
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -8,6 +15,7 @@ function Login() {
   });
 
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -18,20 +26,27 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage("");
+    setLoading(true);
 
     try {
       const response = await axios.post(
-        "http://localhost:3002/login",
+        `${API_URL}/login`,
         formData,
         { withCredentials: true }
       );
 
-      setMessage(response.data.message);
-      window.location.href = "http://localhost:5174";
+      setMessage(response.data.message || "Login successful!");
+
+      window.location.href = DASHBOARD_URL;
     } catch (error) {
+      console.error("Login error:", error.response?.data || error);
+
       setMessage(
         error.response?.data?.message || "Login failed. Please try again."
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,8 +82,12 @@ function Login() {
                 />
               </div>
 
-              <button type="submit" className="btn btn-primary w-100">
-                Login
+              <button
+                type="submit"
+                className="btn btn-primary w-100"
+                disabled={loading}
+              >
+                {loading ? "Logging in..." : "Login"}
               </button>
             </form>
 

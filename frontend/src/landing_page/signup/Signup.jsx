@@ -2,6 +2,9 @@
 import React, { useState } from "react";
 import axios from "axios";
 
+const API_URL =
+    import.meta.env.VITE_API_URL || "https://zerodha-clone-cu3e.onrender.com";
+    
 function Signup() {
     const [formData, setFormData] = useState({
         username: "",
@@ -26,11 +29,12 @@ function Signup() {
 
         try {
             const response = await axios.post(
-                "http://localhost:3002/signup",
-                formData
+                `${API_URL}/signup`,
+                formData,
+                { withCredentials: true }
             );
 
-            setMessage(response.data.message);
+            setMessage(response.data.message || "Registration successful!");
 
             setFormData({
                 username: "",
@@ -38,6 +42,8 @@ function Signup() {
                 password: "",
             });
         } catch (error) {
+            console.error("Signup error:", error.response?.data || error);
+
             setMessage(
                 error.response?.data?.message || "Registration failed"
             );
@@ -50,7 +56,6 @@ function Signup() {
         <div className="container py-5 mb-5">
             <div className="row justify-content-center">
                 <div className="col-md-6 col-lg-5">
-
                     <div className="card shadow-sm border-0 p-4">
                         <h2 className="text-center mb-2">
                             Create your account
@@ -122,7 +127,6 @@ function Signup() {
                             </div>
                         )}
                     </div>
-
                 </div>
             </div>
         </div>
