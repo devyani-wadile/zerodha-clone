@@ -11,6 +11,12 @@ import axios from "axios";
 import "./index.css";
 import Home from "./components/Home";
 
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3002";
+
+const FRONTEND_URL =
+  import.meta.env.VITE_FRONTEND_URL || "https://zerodha-clone-eight-sable.vercel.app";
+
 // Protect dashboard from unauthenticated access
 const ProtectedDashboard = ({ children }) => {
   const [isChecking, setIsChecking] = useState(true);
@@ -20,21 +26,16 @@ const ProtectedDashboard = ({ children }) => {
 
     const verifyUser = async () => {
       try {
-        await axios.get(
-          "http://localhost:3002/verify-token",
-          {
-            withCredentials: true,
-          }
-        );
+        await axios.get(`${API_URL}/verify-token`, {
+          withCredentials: true,
+        });
 
         if (isActive) {
           setIsChecking(false);
         }
       } catch (error) {
         if (isActive) {
-          window.location.replace(
-            "http://localhost:5173/login"
-          );
+          window.location.replace(`${FRONTEND_URL}/login`);
         }
       }
     };
