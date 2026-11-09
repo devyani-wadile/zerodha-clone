@@ -21,10 +21,26 @@ const { FundsTransactionModel } = require("./model/FundsTransactionModel");
 // Middleware
 const authMiddleware = require("./middleware/authMiddleware");
 
+// Configuration
 const PORT = process.env.PORT || 3002;
-const uri = process.env.MONGO_URL;
+const MONGO_URL = process.env.MONGO_URL;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const app = express();
+
+const isProduction = process.env.NODE_ENV === "production";
+
+// Trust Render's reverse proxy
+app.set("trust proxy", 1);
+
+// Cookie configuration
+const cookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  maxAge: 60 * 60 * 1000,
+  path: "/",
+};
 
 // ==================== MIDDLEWARE ====================
 
@@ -45,6 +61,14 @@ app.use(
 app.use(cookieParser());
 app.use(bodyParser.json());
 
+
+// Health check
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "Zerodha Clone API is running",
+  });
+});
+
 // ==================== HOLDINGS ====================
 
 app.get("/allHoldings", authMiddleware, async (req, res) => {
@@ -56,6 +80,7 @@ app.get("/allHoldings", authMiddleware, async (req, res) => {
     res.status(200).json(allHoldings);
   } catch (error) {
     console.error("Error fetching holdings:", error);
+
     res.status(500).json({
       message: "Unable to fetch holdings",
     });
@@ -73,6 +98,7 @@ app.get("/allPositions", authMiddleware, async (req, res) => {
     res.status(200).json(allPositions);
   } catch (error) {
     console.error("Error fetching positions:", error);
+
     res.status(500).json({
       message: "Failed to fetch positions",
     });
@@ -90,6 +116,7 @@ app.get("/allOrders", authMiddleware, async (req, res) => {
     res.status(200).json(allOrders);
   } catch (error) {
     console.error("Error fetching orders:", error);
+
     res.status(500).json({
       message: "Failed to fetch orders",
     });
@@ -229,6 +256,7 @@ app.post("/newOrder", authMiddleware, async (req, res) => {
         } else {
           existingHolding.qty = remainingQuantity;
           existingHolding.price = stockPrice;
+
           await existingHolding.save({ session });
         }
 
@@ -291,6 +319,7 @@ app.get("/allFunds", authMiddleware, async (req, res) => {
     res.status(200).json(funds);
   } catch (error) {
     console.error("Error fetching funds:", error);
+
     res.status(500).json({
       message: "Unable to fetch funds",
     });
@@ -570,17 +599,11 @@ app.post("/login", async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 1000,
-      path: "/",
-    });
+    res.cookie("token", token, cookieOptions);
 
     res.status(200).json({
       message: "Login successful",
@@ -599,10 +622,10 @@ app.post("/login", async (req, res) => {
 
 app.post("/logout", (req, res) => {
   res.clearCookie("token", {
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-    path: "/",
+    httpOnly: cookieOptions.httpOnly,
+    secure: cookieOptions.secure,
+    sameSite: cookieOptions.sameSite,
+    path: cookieOptions.path,
   });
 
   res.status(200).json({
@@ -639,23 +662,23 @@ app.get("/verify-token", authMiddleware, async (req, res) => {
 
 // ==================== DATABASE CONNECTION ====================
 
-if (!uri) {
-  console.error("MONGO_URL is missing from .env");
+if (!MONGO_URL) {
+  console.error("MONGO_URL is missing");
   process.exit(1);
 }
 
-if (!process.env.JWT_SECRET) {
-  console.error("JWT_SECRET is missing from .env");
+if (!JWT_SECRET) {
+  console.error("JWT_SECRET is missing");
   process.exit(1);
 }
 
 mongoose
-  .connect(uri)
+  .connect(MONGO_URL)
   .then(() => {
     console.log("DB connected successfully!");
 
     app.listen(PORT, () => {
-      console.log(`App started on port ${PORT}`);
+      console.log(`Zerodha Clone API started on port ${PORT}`);
     });
   })
   .catch((error) => {
